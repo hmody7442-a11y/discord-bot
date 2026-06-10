@@ -129,7 +129,8 @@ async def on_message(message):
             '🎙️ **أوامر الروم الصوتي**\n'
             '`!دخول` — يدخل رومك الصوتي ويبقى فيه\n'
             '`!خروج` — يخرج من الروم\n'
-            '`!انقل` — ينتقل لرومك الحالي\n\n'
+            '`!انقل` — ينتقل لرومك الحالي\n'
+            '`!setup` — يحفظ رومك ويدخله تلقائياً عند كل تشغيل\n\n'
             '🎵 **أوامر الموسيقى**\n'
             '`!play <رابط أو اسم>` — يشغل أغنية من يوتيوب\n'
             '`!skip` — يتخطى الأغنية الحالية\n'
@@ -141,6 +142,29 @@ async def on_message(message):
             '━━━━━━━━━━━━━━━━━━━━'
         )
         await message.channel.send(msg)
+        return
+
+    # ── !setup ─────────────────────────────────────────────────────────────────
+    if content == '!setup':
+        if not member.voice or not member.voice.channel:
+            await message.channel.send('❌ ادخل روم صوتي أولاً ثم اكتب `!setup`')
+            return
+
+        channel = member.voice.channel
+        target_channels[guild.id] = channel.id
+        save_channels()
+
+        vc = guild.voice_client
+        if vc and vc.is_connected():
+            await vc.move_to(channel)
+        else:
+            await channel.connect()
+
+        await message.channel.send(
+            f'✅ تم الإعداد!\n'
+            f'البوت سيدخل **{channel.name}** تلقائياً عند كل تشغيل بدون أي أوامر 🎙️'
+        )
+        print(f'Setup: will auto-join "{channel.name}" in "{guild.name}"')
         return
 
     # ── !دخول ──────────────────────────────────────────────────────────────────
