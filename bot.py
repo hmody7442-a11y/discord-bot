@@ -43,6 +43,22 @@ YTDL_OPTS = {
     'quiet': True,
     'default_search': 'ytsearch1',
     'source_address': '0.0.0.0',
+    'extractor_args': {
+        'youtube': {
+            'player_client': ['android', 'web'],
+        }
+    },
+    'http_headers': {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    },
+}
+
+YTDL_OPTS_SC = {
+    'format': 'bestaudio/best',
+    'noplaylist': True,
+    'quiet': True,
+    'default_search': 'scsearch1',
+    'source_address': '0.0.0.0',
 }
 
 FFMPEG_OPTS = {
@@ -52,12 +68,23 @@ FFMPEG_OPTS = {
 
 
 def fetch_info(query):
-    """Fetch stream URL and title for a YouTube query or URL (blocking)."""
-    with yt_dlp.YoutubeDL(YTDL_OPTS) as ydl:
-        info = ydl.extract_info(query, download=False)
-        if 'entries' in info:
-            info = info['entries'][0]
-        return info.get('url'), info.get('title', 'Unknown')
+    """Fetch stream URL and title for a YouTube query or URL (blocking).
+    Falls back to SoundCloud if YouTube blocks the request."""
+    try:
+        with yt_dlp.YoutubeDL(YTDL_OPTS) as ydl:
+            info = ydl.extract_info(query, download=False)
+            if 'entries' in info:
+                info = info['entries'][0]
+            return info.get('url'), info.get('title', 'Unknown')
+    except Exception as e:
+        if 'Sign in' in str(e) or 'bot' in str(e).lower() or 'confirm' in str(e).lower():
+            # YouTube blocked — try SoundCloud
+            with yt_dlp.YoutubeDL(YTDL_OPTS_SC) as ydl:
+                info = ydl.extract_info(query, download=False)
+                if 'entries' in info:
+                    info = info['entries'][0]
+                return info.get('url'), info.get('title', 'Unknown')
+        raise
 
 
 async def play_next(guild):
