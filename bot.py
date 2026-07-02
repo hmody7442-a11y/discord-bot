@@ -70,20 +70,27 @@ FFMPEG_OPTS = {
 def fetch_info(query):
     """Fetch stream URL and title for a YouTube query or URL (blocking).
     Falls back to SoundCloud if YouTube blocks the request."""
-    try:
-        with yt_dlp.YoutubeDL(YTDL_OPTS) as ydl:
-            info = ydl.extract_info(query, download=False)
+    def _extract(opts, q):
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(q, download=False)
+            if info is None:
+                raise ValueError('No results found')
             if 'entries' in info:
-                info = info['entries'][0]
+                entries = [e for e in info['entries'] if e]
+                if not entries:
+                    raise ValueError('No results found')
+                info = entries[0]
+            if not info.get('url'):
+                raise ValueError('No playable stream found')
             return info.get('url'), info.get('title', 'Unknown')
+
+    try:
+        return _extract(YTDL_OPTS, query)
     except Exception as e:
-        if 'Sign in' in str(e) or 'bot' in str(e).lower() or 'confirm' in str(e).lower():
-            # YouTube blocked — try SoundCloud
-            with yt_dlp.YoutubeDL(YTDL_OPTS_SC) as ydl:
-                info = ydl.extract_info(query, download=False)
-                if 'entries' in info:
-                    info = info['entries'][0]
-                return info.get('url'), info.get('title', 'Unknown')
+        err = str(e)
+        if 'Sign in' in err or 'bot' in err.lower() or 'confirm' in err.lower():
+            # YouTube blocked — try SoundCloud instead
+            return _extract(YTDL_OPTS_SC, query)
         raise
 
 
