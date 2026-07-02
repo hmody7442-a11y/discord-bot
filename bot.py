@@ -119,7 +119,7 @@ async def on_ready():
 
     print(f'Logged in as {client.user} (ID: {client.user.id})')
     print(f'Connected to {len(client.guilds)} server(s)')
-    print('Commands: !دخول  !خروج  !انقل  !شغل <url/search>  !skip  !stop  !queue')
+    print('Commands: !دخول  !خروج  !انقل  $<url/search>  !skip  !stop  !queue')
 
     domain = os.environ.get('REPLIT_DEV_DOMAIN', '')
     if domain:
@@ -159,7 +159,7 @@ async def on_message(message):
             '`!انقل` — ينتقل لرومك الحالي\n'
             '`!setup` — يحفظ رومك ويدخله تلقائياً عند كل تشغيل\n\n'
             '🎵 **أوامر الموسيقى**\n'
-            '`!شغل <رابط أو اسم>` — يشغل أغنية من يوتيوب\n'
+            '`$<رابط أو اسم>` — يشغل أغنية من يوتيوب\n'
             '`!skip` — يتخطى الأغنية الحالية\n'
             '`!stop` — يوقف الموسيقى ويمسح القائمة\n'
             '`!queue` — يعرض قائمة الأغاني\n\n'
@@ -252,11 +252,11 @@ async def on_message(message):
         else:
             await message.channel.send('I\'m not in a voice channel.')
 
-    # ── !شغل ───────────────────────────────────────────────────────────────────
-    elif content.startswith('!شغل '):
-        query = content[len('!شغل '):].strip()
+    # ── $ (play) ───────────────────────────────────────────────────────────────
+    elif content.startswith('$'):
+        query = content[1:].strip()
         if not query:
-            await message.channel.send('الاستخدام: `!شغل <رابط يوتيوب أو اسم الأغنية>`')
+            await message.channel.send('الاستخدام: `$<رابط يوتيوب أو اسم الأغنية>`')
             return
 
         vc = guild.voice_client
