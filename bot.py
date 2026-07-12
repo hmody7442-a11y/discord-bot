@@ -2,7 +2,6 @@ import discord
 import os
 import asyncio
 import json
-import time
 from collections import deque
 import yt_dlp
 
@@ -428,17 +427,10 @@ async def watchdog():
                 await reconnect(guild, target_channel_id)
 
 
-# ── Start with auto-restart on crash ───────────────────────────────────────────
+# ── Start ──────────────────────────────────────────────────────────────────────
 
 token = os.environ.get('DISCORD_TOKEN')
 if not token:
     raise RuntimeError('DISCORD_TOKEN environment variable is not set.')
 
-while True:
-    try:
-        client.run(token)
-    except Exception as e:
-        print(f'Bot crashed: {e} — restarting in 10 seconds...')
-        time.sleep(10)
-        # Re-create client for fresh reconnect
-        client = MusicClient(intents=intents)
+client.run(token)
