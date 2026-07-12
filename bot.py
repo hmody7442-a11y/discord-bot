@@ -2,15 +2,13 @@ import discord
 import os
 import asyncio
 import json
+import time
 from collections import deque
 import yt_dlp
-from keep_alive import keep_alive
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.voice_states = True
-
-client = discord.Client(intents=intents)
 
 # Per-guild state
 target_channels = {}   # guild_id -> channel_id (where bot should stay)
@@ -117,6 +115,17 @@ async def play_next(guild):
     print(f'Now playing: {title}')
 
 
+# ── Client subclass (proper setup_hook) ────────────────────────────────────────
+
+class MusicClient(discord.Client):
+    async def setup_hook(self):
+        self.loop.create_task(watchdog())
+        print('Watchdog task started.')
+
+
+client = MusicClient(intents=intents)
+
+
 # ── Events ─────────────────────────────────────────────────────────────────────
 
 @client.event
@@ -127,11 +136,6 @@ async def on_ready():
     print(f'Logged in as {client.user} (ID: {client.user.id})')
     print(f'Connected to {len(client.guilds)} server(s)')
     print('Commands: !دخول  !خروج  !انقل  $<url/search>  !skip  !stop  !queue')
-
-    domain = os.environ.get('REPLIT_DEV_DOMAIN', '')
-    if domain:
-        print(f'\n📡 Keep-alive URL (add this to UptimeRobot):')
-        print(f'   https://{domain}/api/ping\n')
     print('------')
 
     # Auto-rejoin saved channels after restart
@@ -149,7 +153,6 @@ async def on_message(message):
     # Guard: ignore DMs (no guild)
     if message.guild is None:
         return
-
 
     content = message.content.strip()
     guild = message.guild
@@ -204,7 +207,7 @@ async def on_message(message):
     # ── !دخول ──────────────────────────────────────────────────────────────────
     if content == '!دخول':
         if not member.voice or not member.voice.channel:
-            await message.channel.send('You need to be in a voice channel first!')
+            await message.channel.send('❌ ادخل روم صوتي أولاً!')
             return
 
         channel = member.voice.channel
@@ -214,36 +217,36 @@ async def on_message(message):
 
         if vc and vc.is_connected():
             if vc.channel.id == channel.id:
-                await message.channel.send(f'Already in **{channel.name}**!')
+                await message.channel.send(f'✅ أنا موجود بالفعل في **{channel.name}**!')
                 return
             await vc.move_to(channel)
         else:
             await channel.connect()
 
-        await message.channel.send(f'Joined **{channel.name}** and will stay there 24/7!')
+        await message.channel.send(f'✅ دخلت **{channel.name}** وسأبقى فيه 24/7!')
         print(f'Joined "{channel.name}" in "{guild.name}"')
 
     # ── !انقل ──────────────────────────────────────────────────────────────────
     elif content == '!انقل':
         if not member.voice or not member.voice.channel:
-            await message.channel.send('You need to be in a voice channel for me to move to!')
+            await message.channel.send('❌ ادخل روم صوتي أولاً!')
             return
 
         channel = member.voice.channel
         vc = guild.voice_client
 
         if not vc or not vc.is_connected():
-            await message.channel.send('I\'m not in a voice channel. Use **!join** first.')
+            await message.channel.send('❌ البوت مو في روم صوتي. استخدم `!دخول` أولاً.')
             return
 
         if vc.channel.id == channel.id:
-            await message.channel.send(f'I\'m already in **{channel.name}**!')
+            await message.channel.send(f'✅ أنا موجود بالفعل في **{channel.name}**!')
             return
 
         target_channels[guild.id] = channel.id
         save_channels()
         await vc.move_to(channel)
-        await message.channel.send(f'Moved to **{channel.name}**!')
+        await message.channel.send(f'✅ انتقلت إلى **{channel.name}**!')
         print(f'Moved to "{channel.name}" in "{guild.name}"')
 
     # ── !خروج ─────────────────────────────────────────────────────────────────
@@ -255,9 +258,9 @@ async def on_message(message):
             queues.pop(guild.id, None)
             now_playing.pop(guild.id, None)
             await vc.disconnect()
-            await message.channel.send('Left the voice channel.')
+            await message.channel.send('✅ خرجت من الروم الصوتي.')
         else:
-            await message.channel.send('I\'m not in a voice channel.')
+            await message.channel.send('❌ البوت مو في أي روم صوتي.')
 
     # ── $ (play) ───────────────────────────────────────────────────────────────
     elif content.startswith('$'):
@@ -269,21 +272,21 @@ async def on_message(message):
         vc = guild.voice_client
         if not vc or not vc.is_connected():
             if not member.voice or not member.voice.channel:
-                await message.channel.send('Join a voice channel first, or use **!join**.')
+                await message.channel.send('❌ ادخل روم صوتي أولاً!')
                 return
             channel = member.voice.channel
             target_channels[guild.id] = channel.id
             save_channels()
             vc = await channel.connect()
 
-        searching_msg = await message.channel.send(f'Searching for `{query}`...')
+        searching_msg = await message.channel.send(f'🔍 جاري البحث عن `{query}`...')
 
         try:
             stream_url, title = await asyncio.get_event_loop().run_in_executor(
                 None, fetch_info, query
             )
         except Exception as e:
-            await searching_msg.edit(content=f'Could not find that track. ({e})')
+            await searching_msg.edit(content=f'❌ ما لقيت الأغنية. ({e})')
             return
 
         if guild.id not in queues:
@@ -291,10 +294,10 @@ async def on_message(message):
 
         if vc.is_playing() or vc.is_paused():
             queues[guild.id].append((title, stream_url))
-            await searching_msg.edit(content=f'Added to queue: **{title}**')
+            await searching_msg.edit(content=f'✅ أضيفت للقائمة: **{title}**')
         else:
             queues[guild.id].appendleft((title, stream_url))
-            await searching_msg.edit(content=f'Now playing: **{title}**')
+            await searching_msg.edit(content=f'🎵 يشتغل الآن: **{title}**')
             await play_next(guild)
 
     # ── !skip ──────────────────────────────────────────────────────────────────
@@ -302,9 +305,9 @@ async def on_message(message):
         vc = guild.voice_client
         if vc and vc.is_playing():
             vc.stop()
-            await message.channel.send('Skipped!')
+            await message.channel.send('⏭️ تم التخطي!')
         else:
-            await message.channel.send('Nothing is playing right now.')
+            await message.channel.send('❌ ما في شيء يشتغل الآن.')
 
     # ── !stop ──────────────────────────────────────────────────────────────────
     elif content.lower() == '!stop':
@@ -313,9 +316,9 @@ async def on_message(message):
         now_playing.pop(guild.id, None)
         if vc and vc.is_playing():
             vc.stop()
-            await message.channel.send('Stopped playback and cleared the queue.')
+            await message.channel.send('⏹️ تم الإيقاف ومسح القائمة.')
         else:
-            await message.channel.send('Nothing is playing.')
+            await message.channel.send('❌ ما في شيء يشتغل.')
 
     # ── !حالة ──────────────────────────────────────────────────────────────────
     elif content == '!حالة':
@@ -351,14 +354,14 @@ async def on_message(message):
         queue = queues.get(guild.id, deque())
 
         if not current and not queue:
-            await message.channel.send('The queue is empty.')
+            await message.channel.send('📋 القائمة فارغة.')
             return
 
         lines = []
         if current:
-            lines.append(f'**Now playing:** {current}')
+            lines.append(f'🎵 **يشتغل الآن:** {current}')
         if queue:
-            lines.append('**Up next:**')
+            lines.append('**القادم:**')
             for i, (title, _) in enumerate(queue, 1):
                 lines.append(f'`{i}.` {title}')
 
@@ -411,6 +414,7 @@ async def reconnect(guild, channel_id):
 
 
 async def watchdog():
+    """Every 60 s, make sure the bot is in its saved voice channel."""
     await client.wait_until_ready()
     while not client.is_closed():
         await asyncio.sleep(60)
@@ -424,17 +428,17 @@ async def watchdog():
                 await reconnect(guild, target_channel_id)
 
 
-@client.event
-async def setup_hook():
-    client.loop.create_task(watchdog())
-
-
-# ── Start ──────────────────────────────────────────────────────────────────────
-
-keep_alive()
+# ── Start with auto-restart on crash ───────────────────────────────────────────
 
 token = os.environ.get('DISCORD_TOKEN')
 if not token:
     raise RuntimeError('DISCORD_TOKEN environment variable is not set.')
 
-client.run(token)
+while True:
+    try:
+        client.run(token)
+    except Exception as e:
+        print(f'Bot crashed: {e} — restarting in 10 seconds...')
+        time.sleep(10)
+        # Re-create client for fresh reconnect
+        client = MusicClient(intents=intents)
