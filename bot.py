@@ -145,7 +145,7 @@ async def on_ready():
 
     print(f'Logged in as {client.user} (ID: {client.user.id})')
     print(f'Connected to {len(client.guilds)} server(s)')
-    print('Commands: !دخول  !خروج  !انقل  $<url/search>  !skip  !stop  !queue')
+    print('Commands: $دخول  $خروج  $انقل  $setup  $skip  $stop  $queue  $حالة  $مساعدة')
     print('------')
 
     # Auto-rejoin saved channels after restart
@@ -168,33 +168,33 @@ async def on_message(message):
     guild = message.guild
     member = guild.get_member(message.author.id)
 
-    # ── !مساعدة ────────────────────────────────────────────────────────────────
-    if content == '!مساعدة':
+    # ── $مساعدة ────────────────────────────────────────────────────────────────
+    if content == '$مساعدة':
         msg = (
             '**📋 قائمة الأوامر**\n'
             '━━━━━━━━━━━━━━━━━━━━\n'
             '🎙️ **أوامر الروم الصوتي**\n'
-            '`!دخول` — يدخل رومك الصوتي ويبقى فيه\n'
-            '`!خروج` — يخرج من الروم\n'
-            '`!انقل` — ينتقل لرومك الحالي\n'
-            '`!setup` — يحفظ رومك ويدخله تلقائياً عند كل تشغيل\n\n'
+            '`$دخول` — يدخل رومك الصوتي ويبقى فيه\n'
+            '`$خروج` — يخرج من الروم\n'
+            '`$انقل` — ينتقل لرومك الحالي\n'
+            '`$setup` — يحفظ رومك ويدخله تلقائياً عند كل تشغيل\n\n'
             '🎵 **أوامر الموسيقى**\n'
             '`$<رابط أو اسم>` — يشغل أغنية من يوتيوب\n'
-            '`!skip` — يتخطى الأغنية الحالية\n'
-            '`!stop` — يوقف الموسيقى ويمسح القائمة\n'
-            '`!queue` — يعرض قائمة الأغاني\n\n'
+            '`$skip` — يتخطى الأغنية الحالية\n'
+            '`$stop` — يوقف الموسيقى ويمسح القائمة\n'
+            '`$queue` — يعرض قائمة الأغاني\n\n'
             'ℹ️ **معلومات**\n'
-            '`!حالة` — يعرض حالة البوت\n'
-            '`!مساعدة` — يعرض هذه القائمة\n'
+            '`$حالة` — يعرض حالة البوت\n'
+            '`$مساعدة` — يعرض هذه القائمة\n'
             '━━━━━━━━━━━━━━━━━━━━'
         )
         await message.channel.send(msg)
         return
 
-    # ── !setup ─────────────────────────────────────────────────────────────────
-    if content == '!setup':
+    # ── $setup ─────────────────────────────────────────────────────────────────
+    if content == '$setup':
         if not member.voice or not member.voice.channel:
-            await message.channel.send('❌ ادخل روم صوتي أولاً ثم اكتب `!setup`')
+            await message.channel.send('❌ ادخل روم صوتي أولاً ثم اكتب `$setup`')
             return
 
         channel = member.voice.channel
@@ -214,8 +214,8 @@ async def on_message(message):
         print(f'Setup: will auto-join "{channel.name}" in "{guild.name}"')
         return
 
-    # ── !دخول ──────────────────────────────────────────────────────────────────
-    if content == '!دخول':
+    # ── $دخول ──────────────────────────────────────────────────────────────────
+    if content == '$دخول':
         if not member.voice or not member.voice.channel:
             await message.channel.send('❌ ادخل روم صوتي أولاً!')
             return
@@ -236,8 +236,8 @@ async def on_message(message):
         await message.channel.send(f'✅ دخلت **{channel.name}** وسأبقى فيه 24/7!')
         print(f'Joined "{channel.name}" in "{guild.name}"')
 
-    # ── !انقل ──────────────────────────────────────────────────────────────────
-    elif content == '!انقل':
+    # ── $انقل ──────────────────────────────────────────────────────────────────
+    elif content == '$انقل':
         if not member.voice or not member.voice.channel:
             await message.channel.send('❌ ادخل روم صوتي أولاً!')
             return
@@ -246,7 +246,7 @@ async def on_message(message):
         vc = guild.voice_client
 
         if not vc or not vc.is_connected():
-            await message.channel.send('❌ البوت مو في روم صوتي. استخدم `!دخول` أولاً.')
+            await message.channel.send('❌ البوت مو في روم صوتي. استخدم `$دخول` أولاً.')
             return
 
         if vc.channel.id == channel.id:
@@ -259,8 +259,8 @@ async def on_message(message):
         await message.channel.send(f'✅ انتقلت إلى **{channel.name}**!')
         print(f'Moved to "{channel.name}" in "{guild.name}"')
 
-    # ── !خروج ─────────────────────────────────────────────────────────────────
-    elif content == '!خروج':
+    # ── $خروج ─────────────────────────────────────────────────────────────────
+    elif content == '$خروج':
         vc = guild.voice_client
         if vc and vc.is_connected():
             target_channels.pop(guild.id, None)
@@ -272,7 +272,74 @@ async def on_message(message):
         else:
             await message.channel.send('❌ البوت مو في أي روم صوتي.')
 
-    # ── $ (play) ───────────────────────────────────────────────────────────────
+    # ── $skip ──────────────────────────────────────────────────────────────────
+    elif content.lower() == '$skip':
+        vc = guild.voice_client
+        if vc and vc.is_playing():
+            vc.stop()
+            await message.channel.send('⏭️ تم التخطي!')
+        else:
+            await message.channel.send('❌ ما في شيء يشتغل الآن.')
+
+    # ── $stop ──────────────────────────────────────────────────────────────────
+    elif content.lower() == '$stop':
+        vc = guild.voice_client
+        queues.pop(guild.id, None)
+        now_playing.pop(guild.id, None)
+        if vc and vc.is_playing():
+            vc.stop()
+            await message.channel.send('⏹️ تم الإيقاف ومسح القائمة.')
+        else:
+            await message.channel.send('❌ ما في شيء يشتغل.')
+
+    # ── $حالة ──────────────────────────────────────────────────────────────────
+    elif content == '$حالة':
+        vc = guild.voice_client
+        current = now_playing.get(guild.id)
+        queue = queues.get(guild.id, deque())
+
+        if vc and vc.is_connected():
+            voice_status = f'✅ متصل بـ **{vc.channel.name}**'
+        else:
+            voice_status = '❌ غير متصل بأي روم صوتي'
+
+        if current:
+            music_status = f'🎵 يشتغل: **{current}**'
+            if queue:
+                music_status += f'\n📋 في الانتظار: **{len(queue)}** أغنية'
+        else:
+            music_status = '🔇 ما في موسيقى تشتغل'
+
+        msg = (
+            f'**حالة البوت**\n'
+            f'━━━━━━━━━━━━━━━\n'
+            f'{voice_status}\n'
+            f'{music_status}\n'
+            f'━━━━━━━━━━━━━━━\n'
+            f'🤖 {client.user.name}'
+        )
+        await message.channel.send(msg)
+
+    # ── $queue ─────────────────────────────────────────────────────────────────
+    elif content.lower() in ('$queue', '$q'):
+        current = now_playing.get(guild.id)
+        queue = queues.get(guild.id, deque())
+
+        if not current and not queue:
+            await message.channel.send('📋 القائمة فارغة.')
+            return
+
+        lines = []
+        if current:
+            lines.append(f'🎵 **يشتغل الآن:** {current}')
+        if queue:
+            lines.append('**القادم:**')
+            for i, (title, _) in enumerate(queue, 1):
+                lines.append(f'`{i}.` {title}')
+
+        await message.channel.send('\n'.join(lines))
+
+    # ── $ (play) — catch-all, must be last ────────────────────────────────────
     elif content.startswith('$'):
         query = content[1:].strip()
         if not query:
@@ -309,73 +376,6 @@ async def on_message(message):
             queues[guild.id].appendleft((title, stream_url))
             await searching_msg.edit(content=f'🎵 يشتغل الآن: **{title}**')
             await play_next(guild)
-
-    # ── !skip ──────────────────────────────────────────────────────────────────
-    elif content.lower() == '!skip':
-        vc = guild.voice_client
-        if vc and vc.is_playing():
-            vc.stop()
-            await message.channel.send('⏭️ تم التخطي!')
-        else:
-            await message.channel.send('❌ ما في شيء يشتغل الآن.')
-
-    # ── !stop ──────────────────────────────────────────────────────────────────
-    elif content.lower() == '!stop':
-        vc = guild.voice_client
-        queues.pop(guild.id, None)
-        now_playing.pop(guild.id, None)
-        if vc and vc.is_playing():
-            vc.stop()
-            await message.channel.send('⏹️ تم الإيقاف ومسح القائمة.')
-        else:
-            await message.channel.send('❌ ما في شيء يشتغل.')
-
-    # ── !حالة ──────────────────────────────────────────────────────────────────
-    elif content == '!حالة':
-        vc = guild.voice_client
-        current = now_playing.get(guild.id)
-        queue = queues.get(guild.id, deque())
-
-        if vc and vc.is_connected():
-            voice_status = f'✅ متصل بـ **{vc.channel.name}**'
-        else:
-            voice_status = '❌ غير متصل بأي روم صوتي'
-
-        if current:
-            music_status = f'🎵 يشتغل: **{current}**'
-            if queue:
-                music_status += f'\n📋 في الانتظار: **{len(queue)}** أغنية'
-        else:
-            music_status = '🔇 ما في موسيقى تشتغل'
-
-        msg = (
-            f'**حالة البوت**\n'
-            f'━━━━━━━━━━━━━━━\n'
-            f'{voice_status}\n'
-            f'{music_status}\n'
-            f'━━━━━━━━━━━━━━━\n'
-            f'🤖 {client.user.name}'
-        )
-        await message.channel.send(msg)
-
-    # ── !queue ─────────────────────────────────────────────────────────────────
-    elif content.lower() in ('!queue', '!q'):
-        current = now_playing.get(guild.id)
-        queue = queues.get(guild.id, deque())
-
-        if not current and not queue:
-            await message.channel.send('📋 القائمة فارغة.')
-            return
-
-        lines = []
-        if current:
-            lines.append(f'🎵 **يشتغل الآن:** {current}')
-        if queue:
-            lines.append('**القادم:**')
-            for i, (title, _) in enumerate(queue, 1):
-                lines.append(f'`{i}.` {title}')
-
-        await message.channel.send('\n'.join(lines))
 
 
 # ── Voice reconnection ─────────────────────────────────────────────────────────
