@@ -6,6 +6,16 @@ from collections import deque
 import yt_dlp
 from keep_alive import keep_alive
 
+# Load Opus (required for voice audio)
+if not discord.opus.is_loaded():
+    try:
+        discord.opus.load_opus('libopus.so.0')
+    except Exception:
+        try:
+            discord.opus.load_opus('libopus.so')
+        except Exception:
+            pass  # Will fail loudly when voice is used if still not loaded
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.voice_states = True
