@@ -4,6 +4,7 @@ import asyncio
 import json
 from collections import deque
 import yt_dlp
+from keep_alive import keep_alive
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -428,6 +429,8 @@ async def watchdog():
 
 
 # ── Start ──────────────────────────────────────────────────────────────────────
+
+keep_alive()
 
 token = os.environ.get('DISCORD_TOKEN')
 if not token:
